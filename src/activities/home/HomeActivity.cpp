@@ -23,7 +23,7 @@
 #include "fontIds.h"
 
 int HomeActivity::getMenuItemCount() const {
-  int count = 4;  // File Browser, Recents, File transfer, Settings
+  int count = 5;  // File Browser, Recents, File transfer, MTG Tokens, Settings
   if (!recentBooks.empty()) {
     count += recentBooks.size();
   }
@@ -191,6 +191,9 @@ void HomeActivity::loop() {
       case HomeMenuItem::FILE_TRANSFER:
         onFileTransferOpen();
         break;
+      case HomeMenuItem::MTG_TOKENS:
+        onMtgTokensOpen();
+        break;
       case HomeMenuItem::SETTINGS_MENU:
         onSettingsOpen();
         break;
@@ -307,9 +310,13 @@ void HomeActivity::render(RenderLock&&) {
                           std::bind(&HomeActivity::storeCoverBuffer, this));
 
   // Build menu items dynamically
-  std::vector<const char*> menuItems = {tr(STR_BROWSE_FILES), tr(STR_MENU_RECENT_BOOKS), tr(STR_FILE_TRANSFER),
-                                        "MTG TEST"};
-  std::vector<UIIcon> menuIcons = {Folder, Recent, Transfer, Settings};
+  std::vector<const char*> menuItems = {
+    tr(STR_BROWSE_FILES),
+    tr(STR_MENU_RECENT_BOOKS),
+    tr(STR_FILE_TRANSFER),
+    "MTG Tokens",
+    tr(STR_SETTINGS_TITLE)};
+  std::vector<UIIcon> menuIcons = {Folder, Recent, Transfer, Library, Settings};
 
   if (hasOpdsServers) {
     menuItems.insert(menuItems.begin() + 2, tr(STR_OPDS_BROWSER));
@@ -352,6 +359,8 @@ void HomeActivity::onSelectBook(const std::string& path) { activityManager.goToR
 void HomeActivity::onFileBrowserOpen() { activityManager.goToFileBrowser(); }
 
 void HomeActivity::onRecentsOpen() { activityManager.goToRecentBooks(); }
+
+void HomeActivity::onMtgTokensOpen() { activityManager.goToMtgTokens(); }
 
 void HomeActivity::onSettingsOpen() { activityManager.goToSettings(); }
 
