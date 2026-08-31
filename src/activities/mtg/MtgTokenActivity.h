@@ -29,6 +29,7 @@ class MtgTokenActivity final : public Activity, private UiAppHost {
     TokenPicker,
     StatEditor,
     CardText,
+    Zoom,
   };
 
   enum class StatField {
@@ -116,6 +117,7 @@ class MtgTokenActivity final : public Activity, private UiAppHost {
   void buildTokenPickerScreen(UiScreen& screen);
   void buildStatEditorScreen(UiScreen& screen);
   void buildCardTextScreen(UiScreen& screen);
+  void buildZoomScreen(UiScreen& screen);
 
   void moveSelection(int delta);
   void adjustQuantity(int delta);
@@ -151,6 +153,13 @@ class MtgTokenActivity final : public Activity, private UiAppHost {
 
   static int parseStatValue(
       const std::string& value);
+
+  static bool tryParseNumericStat(
+      const std::string& value,
+      long& result);
+
+  static std::string buildStatSummary(
+      const TokenSlot& slot);
 
   static bool readLine(
       HalFile& file,

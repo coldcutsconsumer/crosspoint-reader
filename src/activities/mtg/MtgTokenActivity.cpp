@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <Bitmap.h>
 #include <HalStorage.h>
+#include <Logging.h>
+#include <Memory.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -12,17 +14,18 @@ namespace fui = freeink::ui;
 
 namespace {
 
-// Edit shortcut was previously 3000 ms.
-// 2000 ms is about 33% faster.
-constexpr unsigned long EDIT_LONG_PRESS_MS = 2000;
+// Main-board Right rocker long-hold time for Zoom.
+constexpr unsigned long ZOOM_LONG_PRESS_MS = 1300;
 
 }  // namespace
+
 
 MtgTokenActivity::MtgTokenActivity(
     GfxRenderer& renderer,
     MappedInputManager& mappedInput)
     : Activity("MtgTokens", renderer, mappedInput),
       UiAppHost(renderer) {}
+
 
 void MtgTokenActivity::onEnter() {
   Activity::onEnter();
@@ -63,6 +66,7 @@ void MtgTokenActivity::onEnter() {
   requestUpdate();
 }
 
+
 void MtgTokenActivity::onExit() {
   if (stateDirty) {
     saveState();
@@ -72,6 +76,7 @@ void MtgTokenActivity::onExit() {
 
   Activity::onExit();
 }
+
 
 void MtgTokenActivity::resetSlotsToEmpty() {
   for (int i = 0; i < SLOT_COUNT; ++i) {
@@ -84,6 +89,7 @@ void MtgTokenActivity::resetSlotsToEmpty() {
     slots[i].quantity = 0;
   }
 }
+
 
 void MtgTokenActivity::clearSelectedCard() {
   TokenSlot& slot =
@@ -105,8 +111,10 @@ void MtgTokenActivity::clearSelectedCard() {
   markStateDirty();
   saveState();
 
-  setView(View::TokenGrid);
+  setView(
+      View::TokenGrid);
 }
+
 
 void MtgTokenActivity::clearBoard() {
   resetSlotsToEmpty();
@@ -126,13 +134,16 @@ void MtgTokenActivity::clearBoard() {
   markStateDirty();
   saveState();
 
-  setView(View::TokenGrid);
+  setView(
+      View::TokenGrid);
 }
+
 
 void MtgTokenActivity::markStateDirty() {
   stateDirty = true;
   stateDirtyAt = millis();
 }
+
 
 void MtgTokenActivity::maybeSaveState() {
   if (!stateDirty) {
@@ -147,6 +158,7 @@ void MtgTokenActivity::maybeSaveState() {
 
   saveState();
 }
+
 
 std::string MtgTokenActivity::escapeSessionField(
     const std::string& value) {
@@ -174,13 +186,15 @@ std::string MtgTokenActivity::escapeSessionField(
         break;
 
       default:
-        result.push_back(character);
+        result.push_back(
+            character);
         break;
     }
   }
 
   return result;
 }
+
 
 std::string MtgTokenActivity::unescapeSessionField(
     const std::string& value) {
@@ -198,7 +212,9 @@ std::string MtgTokenActivity::unescapeSessionField(
     if (
         character != '\\' ||
         i + 1 >= value.size()) {
-      result.push_back(character);
+      result.push_back(
+          character);
+
       continue;
     }
 
@@ -207,24 +223,31 @@ std::string MtgTokenActivity::unescapeSessionField(
 
     switch (escaped) {
       case 'n':
-        result.push_back('\n');
+        result.push_back(
+            '\n');
         break;
 
       case 'r':
-        result.push_back('\r');
+        result.push_back(
+            '\r');
         break;
 
       case 't':
-        result.push_back('\t');
+        result.push_back(
+            '\t');
         break;
 
       case '\\':
-        result.push_back('\\');
+        result.push_back(
+            '\\');
         break;
 
       default:
-        result.push_back('\\');
-        result.push_back(escaped);
+        result.push_back(
+            '\\');
+
+        result.push_back(
+            escaped);
         break;
     }
   }
@@ -232,12 +255,14 @@ std::string MtgTokenActivity::unescapeSessionField(
   return result;
 }
 
+
 bool MtgTokenActivity::splitSessionLine(
     const std::string& line,
     const size_t expectedFields,
     std::vector<std::string>& fields) {
   fields.clear();
-  fields.reserve(expectedFields);
+  fields.reserve(
+      expectedFields);
 
   size_t start = 0;
 
@@ -268,6 +293,7 @@ bool MtgTokenActivity::splitSessionLine(
       expectedFields);
 }
 
+
 bool MtgTokenActivity::saveState() {
   if (!Storage.ready()) {
     return false;
@@ -280,11 +306,14 @@ bool MtgTokenActivity::saveState() {
 
   std::string data;
 
-  data.reserve(2048);
+  data.reserve(
+      2048);
 
   data += "X3MTG2\n";
 
-  for (int i = 0; i < SLOT_COUNT; ++i) {
+  for (int i = 0;
+       i < SLOT_COUNT;
+       ++i) {
     const TokenSlot& slot =
         slots[i];
 
@@ -350,6 +379,7 @@ bool MtgTokenActivity::saveState() {
   return true;
 }
 
+
 bool MtgTokenActivity::loadState() {
   stateDirty = false;
 
@@ -372,6 +402,7 @@ bool MtgTokenActivity::loadState() {
           file,
           line)) {
     file.close();
+
     return false;
   }
 
@@ -384,6 +415,7 @@ bool MtgTokenActivity::loadState() {
   if (!version1 &&
       !version2) {
     file.close();
+
     return false;
   }
 
@@ -396,6 +428,7 @@ bool MtgTokenActivity::loadState() {
             file,
             line)) {
       file.close();
+
       return false;
     }
 
@@ -409,6 +442,7 @@ bool MtgTokenActivity::loadState() {
             expectedFields,
             fields)) {
       file.close();
+
       return false;
     }
 
@@ -439,6 +473,7 @@ bool MtgTokenActivity::loadState() {
       slot.oracleText =
           unescapeSessionField(
               fields[6]);
+
     } else {
       slot.name =
           fields[0];
@@ -466,7 +501,9 @@ bool MtgTokenActivity::loadState() {
 
     if (quantity < 0) {
       quantity = 0;
-    } else if (quantity > 999) {
+
+    } else if (
+        quantity > 999) {
       quantity = 999;
     }
 
@@ -497,13 +534,16 @@ bool MtgTokenActivity::loadState() {
   return true;
 }
 
+
 void MtgTokenActivity::moveSelection(
     const int delta) {
-  selectedSlot += delta;
+  selectedSlot +=
+      delta;
 
   if (selectedSlot < 0) {
     selectedSlot =
         SLOT_COUNT - 1;
+
   } else if (
       selectedSlot >=
       SLOT_COUNT) {
@@ -512,6 +552,7 @@ void MtgTokenActivity::moveSelection(
 
   requestUpdate();
 }
+
 
 void MtgTokenActivity::adjustQuantity(
     const int delta) {
@@ -528,7 +569,9 @@ void MtgTokenActivity::adjustQuantity(
 
   if (next < 0) {
     next = 0;
-  } else if (next > 999) {
+
+  } else if (
+      next > 999) {
     next = 999;
   }
 
@@ -545,13 +588,16 @@ void MtgTokenActivity::adjustQuantity(
   requestUpdate();
 }
 
+
 void MtgTokenActivity::moveEditSelection(
     const int delta) {
-  selectedEditItem += delta;
+  selectedEditItem +=
+      delta;
 
   if (selectedEditItem < 0) {
     selectedEditItem =
         EDIT_ITEM_COUNT - 1;
+
   } else if (
       selectedEditItem >=
       EDIT_ITEM_COUNT) {
@@ -561,13 +607,16 @@ void MtgTokenActivity::moveEditSelection(
   requestUpdate();
 }
 
+
 void MtgTokenActivity::moveLetterSelection(
     const int delta) {
-  selectedLetter += delta;
+  selectedLetter +=
+      delta;
 
   if (selectedLetter < 0) {
     selectedLetter =
         LETTER_COUNT - 1;
+
   } else if (
       selectedLetter >=
       LETTER_COUNT) {
@@ -577,19 +626,22 @@ void MtgTokenActivity::moveLetterSelection(
   requestUpdate();
 }
 
+
 void MtgTokenActivity::moveTokenSelection(
     const int delta) {
   if (tokenChoices.empty()) {
     return;
   }
 
-  selectedTokenIndex += delta;
+  selectedTokenIndex +=
+      delta;
 
   if (selectedTokenIndex < 0) {
     selectedTokenIndex =
         static_cast<int>(
             tokenChoices.size()) -
         1;
+
   } else if (
       selectedTokenIndex >=
       static_cast<int>(
@@ -600,13 +652,15 @@ void MtgTokenActivity::moveTokenSelection(
   requestUpdate();
 }
 
+
 int MtgTokenActivity::parseStatValue(
     const std::string& value) {
   if (value.empty()) {
     return 0;
   }
 
-  char* end = nullptr;
+  char* end =
+      nullptr;
 
   const long parsed =
       std::strtol(
@@ -632,6 +686,86 @@ int MtgTokenActivity::parseStatValue(
       parsed);
 }
 
+
+bool MtgTokenActivity::tryParseNumericStat(
+    const std::string& value,
+    long& result) {
+  if (value.empty()) {
+    return false;
+  }
+
+  char* end =
+      nullptr;
+
+  result =
+      std::strtol(
+          value.c_str(),
+          &end,
+          10);
+
+  return (
+      end != value.c_str() &&
+      *end == '\0');
+}
+
+
+std::string MtgTokenActivity::buildStatSummary(
+    const TokenSlot& slot) {
+  if (
+      slot.power.empty() &&
+      slot.toughness.empty()) {
+    return "";
+  }
+
+  long powerValue = 0;
+  long toughnessValue = 0;
+
+  const bool powerNumeric =
+      tryParseNumericStat(
+          slot.power,
+          powerValue);
+
+  const bool toughnessNumeric =
+      tryParseNumericStat(
+          slot.toughness,
+          toughnessValue);
+
+  char buffer[80];
+
+  if (
+      powerNumeric &&
+      toughnessNumeric) {
+    const long totalPower =
+        powerValue *
+        slot.quantity;
+
+    const long totalToughness =
+        toughnessValue *
+        slot.quantity;
+
+    snprintf(
+        buffer,
+        sizeof(buffer),
+        "%s/%s   [T]:%ld/%ld",
+        slot.power.c_str(),
+        slot.toughness.c_str(),
+        totalPower,
+        totalToughness);
+
+  } else {
+    snprintf(
+        buffer,
+        sizeof(buffer),
+        "%s/%s",
+        slot.power.c_str(),
+        slot.toughness.c_str());
+  }
+
+  return std::string(
+      buffer);
+}
+
+
 void MtgTokenActivity::beginStatEdit(
     const StatField field) {
   editingStat =
@@ -640,7 +774,8 @@ void MtgTokenActivity::beginStatEdit(
   const TokenSlot& slot =
       slots[selectedSlot];
 
-  if (field ==
+  if (
+      field ==
       StatField::Power) {
     editStatValue =
         parseStatValue(
@@ -661,6 +796,7 @@ void MtgTokenActivity::beginStatEdit(
       View::StatEditor);
 }
 
+
 void MtgTokenActivity::adjustStatValue(
     const int delta) {
   int next =
@@ -669,7 +805,9 @@ void MtgTokenActivity::adjustStatValue(
 
   if (next < -99) {
     next = -99;
-  } else if (next > 999) {
+
+  } else if (
+      next > 999) {
     next = 999;
   }
 
@@ -684,11 +822,13 @@ void MtgTokenActivity::adjustStatValue(
   requestUpdate();
 }
 
+
 void MtgTokenActivity::commitStatEdit() {
   TokenSlot& slot =
       slots[selectedSlot];
 
-  if (editingStat ==
+  if (
+      editingStat ==
       StatField::Power) {
     slot.power =
         std::to_string(
@@ -714,14 +854,17 @@ void MtgTokenActivity::commitStatEdit() {
       View::EditMenu);
 }
 
+
 void MtgTokenActivity::setView(
     const View nextView) {
-  view = nextView;
+  view =
+      nextView;
 
   closeRouting();
 
   requestUpdate();
 }
+
 
 void MtgTokenActivity::activateCurrentSelection() {
   switch (view) {
@@ -787,7 +930,8 @@ void MtgTokenActivity::activateCurrentSelection() {
     }
 
     case View::TokenPicker:
-      if (!tokenLoadError &&
+      if (
+          !tokenLoadError &&
           !tokenChoices.empty()) {
         assignSelectedToken();
 
@@ -802,17 +946,17 @@ void MtgTokenActivity::activateCurrentSelection() {
       break;
 
     case View::CardText:
-      /*
-       * BTB = Back To Board
-       *
-       * The same physical button used for Edit/Select
-       * immediately returns to the token grid.
-       */
+      // BTB remains available on the dedicated text page.
       setView(
           View::TokenGrid);
       break;
+
+    case View::Zoom:
+      // Zoom is intentionally exited only with Back.
+      break;
   }
 }
+
 
 void MtgTokenActivity::goBackOneLevel() {
   switch (view) {
@@ -848,15 +992,17 @@ void MtgTokenActivity::goBackOneLevel() {
       break;
 
     case View::CardText:
-      /*
-       * Back still behaves like normal hierarchical Back:
-       * Card Text -> Edit Menu.
-       */
       setView(
           View::EditMenu);
       break;
+
+    case View::Zoom:
+      setView(
+          View::TokenGrid);
+      break;
   }
 }
+
 
 void MtgTokenActivity::onTokenSelected(
     const fui::ActionEvent& event,
@@ -865,8 +1011,10 @@ void MtgTokenActivity::onTokenSelected(
       static_cast<MtgTokenActivity*>(
           user);
 
-  if (event.value < 0 ||
-      event.value >= SLOT_COUNT) {
+  if (
+      event.value < 0 ||
+      event.value >=
+          SLOT_COUNT) {
     return;
   }
 
@@ -876,6 +1024,7 @@ void MtgTokenActivity::onTokenSelected(
   self->requestUpdate();
 }
 
+
 void MtgTokenActivity::onEditItemSelected(
     const fui::ActionEvent& event,
     void* user) {
@@ -883,7 +1032,8 @@ void MtgTokenActivity::onEditItemSelected(
       static_cast<MtgTokenActivity*>(
           user);
 
-  if (event.value < 0 ||
+  if (
+      event.value < 0 ||
       event.value >=
           EDIT_ITEM_COUNT) {
     return;
@@ -895,6 +1045,7 @@ void MtgTokenActivity::onEditItemSelected(
   self->activateCurrentSelection();
 }
 
+
 void MtgTokenActivity::loop() {
   maybeSaveState();
 
@@ -902,7 +1053,8 @@ void MtgTokenActivity::loop() {
       routeTouch(
           mappedInput);
 
-  if (route.routed &&
+  if (
+      route.routed &&
       app.invalidated()) {
     requestUpdate();
   }
@@ -912,37 +1064,43 @@ void MtgTokenActivity::loop() {
   }
 
   /*
-   * QUICK CARD-TEXT SHORTCUT
+   * MAIN BOARD ZOOM SHORTCUT
    *
-   * Main token board:
+   * Tap Right:
+   *   Next token
    *
-   *   Tap Edit        = Edit menu
-   *   Hold Edit 2 sec = Card Text
+   * Hold Right 1.3 seconds:
+   *   Zoom selected token
    */
   if (
       view == View::TokenGrid &&
       !slots[selectedSlot].name.empty() &&
       mappedInput.wasLongPressed(
-          MappedInputManager::Button::Confirm,
-          EDIT_LONG_PRESS_MS)) {
+          MappedInputManager::Button::Right,
+          ZOOM_LONG_PRESS_MS)) {
     setView(
-        View::CardText);
+        View::Zoom);
 
     return;
   }
 
   /*
    * Prevent the release following a successful long press
-   * from being interpreted as another normal button press.
+   * from also triggering the short Right action.
    */
   if (
       mappedInput.consumeSuppressedRelease()) {
     return;
   }
 
-  if (mappedInput.wasReleased(
+  /*
+   * BACK
+   */
+  if (
+      mappedInput.wasReleased(
           MappedInputManager::Button::Back)) {
-    if (view ==
+    if (
+        view ==
         View::TokenGrid) {
       if (stateDirty) {
         saveState();
@@ -958,9 +1116,13 @@ void MtgTokenActivity::loop() {
   }
 
   /*
-   * Normal Edit/Select/Save/BTB press.
+   * EDIT / SELECT / SAVE / BTB
+   *
+   * There is deliberately NO Edit long-hold shortcut now.
+   * On the main board, Edit always opens the normal Edit menu.
    */
-  if (mappedInput.wasReleased(
+  if (
+      mappedInput.wasReleased(
           MappedInputManager::Button::Confirm)) {
     activateCurrentSelection();
 
@@ -968,15 +1130,46 @@ void MtgTokenActivity::loop() {
   }
 
   /*
+   * MAIN BOARD LEFT / RIGHT
+   *
+   * Right must activate on release so we can distinguish
+   * a quick tap from the 1.3-second Zoom hold.
+   */
+  if (
+      view ==
+      View::TokenGrid) {
+    if (
+        mappedInput.wasReleased(
+            MappedInputManager::Button::Left)) {
+      moveSelection(-1);
+
+      return;
+    }
+
+    if (
+        mappedInput.wasReleased(
+            MappedInputManager::Button::Right)) {
+      moveSelection(1);
+
+      return;
+    }
+  }
+
+  /*
    * PHYSICAL SIDE BUTTONS
    *
-   * Main board:
+   * Main Board:
+   *   physical left  = -1
+   *   physical right = +1
    *
-   *   Left side  = -1
-   *   Right side = +1
+   * Zoom:
+   *   physical left  = -1
+   *   physical right = +1
    */
   buttonNavigator.onPressAndContinuous(
-      {MappedInputManager::Button::Up},
+      {
+          MappedInputManager::Button::Up
+      },
       [this] {
         switch (view) {
           case View::TokenGrid:
@@ -1001,11 +1194,17 @@ void MtgTokenActivity::loop() {
 
           case View::CardText:
             break;
+
+          case View::Zoom:
+            adjustQuantity(-1);
+            break;
         }
       });
 
   buttonNavigator.onPressAndContinuous(
-      {MappedInputManager::Button::Down},
+      {
+          MappedInputManager::Button::Down
+      },
       [this] {
         switch (view) {
           case View::TokenGrid:
@@ -1030,41 +1229,33 @@ void MtgTokenActivity::loop() {
 
           case View::CardText:
             break;
+
+          case View::Zoom:
+            adjustQuantity(1);
+            break;
         }
       });
 
   /*
-   * BOTTOM-RIGHT ROCKER
-   *
-   * Main board:
-   *
-   *   Left  = previous tile
-   *   Right = next tile
+   * BOTTOM-RIGHT ROCKER IN SUBMENUS
    */
   switch (view) {
     case View::TokenGrid:
-      buttonNavigator.onPressAndContinuous(
-          {MappedInputManager::Button::Left},
-          [this] {
-            moveSelection(-1);
-          });
-
-      buttonNavigator.onPressAndContinuous(
-          {MappedInputManager::Button::Right},
-          [this] {
-            moveSelection(1);
-          });
       break;
 
     case View::EditMenu:
       buttonNavigator.onPressAndContinuous(
-          {MappedInputManager::Button::Left},
+          {
+              MappedInputManager::Button::Left
+          },
           [this] {
             moveEditSelection(-1);
           });
 
       buttonNavigator.onPressAndContinuous(
-          {MappedInputManager::Button::Right},
+          {
+              MappedInputManager::Button::Right
+          },
           [this] {
             moveEditSelection(1);
           });
@@ -1072,13 +1263,17 @@ void MtgTokenActivity::loop() {
 
     case View::AlphabetPicker:
       buttonNavigator.onPressAndContinuous(
-          {MappedInputManager::Button::Left},
+          {
+              MappedInputManager::Button::Left
+          },
           [this] {
             moveLetterSelection(-1);
           });
 
       buttonNavigator.onPressAndContinuous(
-          {MappedInputManager::Button::Right},
+          {
+              MappedInputManager::Button::Right
+          },
           [this] {
             moveLetterSelection(1);
           });
@@ -1086,13 +1281,17 @@ void MtgTokenActivity::loop() {
 
     case View::TokenPicker:
       buttonNavigator.onPressAndContinuous(
-          {MappedInputManager::Button::Left},
+          {
+              MappedInputManager::Button::Left
+          },
           [this] {
             moveTokenSelection(-1);
           });
 
       buttonNavigator.onPressAndContinuous(
-          {MappedInputManager::Button::Right},
+          {
+              MappedInputManager::Button::Right
+          },
           [this] {
             moveTokenSelection(1);
           });
@@ -1100,13 +1299,17 @@ void MtgTokenActivity::loop() {
 
     case View::StatEditor:
       buttonNavigator.onPressAndContinuous(
-          {MappedInputManager::Button::Left},
+          {
+              MappedInputManager::Button::Left
+          },
           [this] {
             adjustStatValue(-1);
           });
 
       buttonNavigator.onPressAndContinuous(
-          {MappedInputManager::Button::Right},
+          {
+              MappedInputManager::Button::Right
+          },
           [this] {
             adjustStatValue(1);
           });
@@ -1114,8 +1317,12 @@ void MtgTokenActivity::loop() {
 
     case View::CardText:
       break;
+
+    case View::Zoom:
+      break;
   }
 }
+
 
 void MtgTokenActivity::tokenScreen(
     UiScreen& screen,
@@ -1154,8 +1361,14 @@ void MtgTokenActivity::tokenScreen(
       self->buildCardTextScreen(
           screen);
       break;
+
+    case View::Zoom:
+      self->buildZoomScreen(
+          screen);
+      break;
   }
 }
+
 
 bool MtgTokenActivity::readLine(
     HalFile& file,
@@ -1174,11 +1387,15 @@ bool MtgTokenActivity::readLine(
         static_cast<char>(
             value);
 
-    if (character == '\r') {
+    if (
+        character ==
+        '\r') {
       continue;
     }
 
-    if (character == '\n') {
+    if (
+        character ==
+        '\n') {
       return true;
     }
 
@@ -1188,6 +1405,7 @@ bool MtgTokenActivity::readLine(
 
   return !line.empty();
 }
+
 
 bool MtgTokenActivity::readTsvRecord(
     HalFile& file,
@@ -1217,8 +1435,11 @@ bool MtgTokenActivity::readTsvRecord(
     sawData = true;
 
     if (quotePending) {
-      if (character == '"') {
-        current.push_back('"');
+      if (
+          character ==
+          '"') {
+        current.push_back(
+            '"');
 
         quotePending = false;
 
@@ -1230,8 +1451,11 @@ bool MtgTokenActivity::readTsvRecord(
     }
 
     if (inQuotes) {
-      if (character == '"') {
+      if (
+          character ==
+          '"') {
         quotePending = true;
+
       } else {
         current.push_back(
             character);
@@ -1248,11 +1472,15 @@ bool MtgTokenActivity::readTsvRecord(
       continue;
     }
 
-    if (character == '\r') {
+    if (
+        character ==
+        '\r') {
       continue;
     }
 
-    if (character == '\t') {
+    if (
+        character ==
+        '\t') {
       fields.push_back(
           std::move(
               current));
@@ -1262,7 +1490,9 @@ bool MtgTokenActivity::readTsvRecord(
       continue;
     }
 
-    if (character == '\n') {
+    if (
+        character ==
+        '\n') {
       fields.push_back(
           std::move(
               current));
@@ -1287,6 +1517,7 @@ bool MtgTokenActivity::readTsvRecord(
 
   return false;
 }
+
 
 bool MtgTokenActivity::loadTokensForLetter(
     const char letter) {
@@ -1334,7 +1565,9 @@ bool MtgTokenActivity::loadTokensForLetter(
   while (readTsvRecord(
       file,
       fields)) {
-    if (fields.size() < 7) {
+    if (
+        fields.size() <
+        7) {
       continue;
     }
 
@@ -1370,8 +1603,10 @@ bool MtgTokenActivity::loadTokensForLetter(
   return true;
 }
 
+
 void MtgTokenActivity::assignSelectedToken() {
-  if (selectedTokenIndex < 0 ||
+  if (
+      selectedTokenIndex < 0 ||
       selectedTokenIndex >=
           static_cast<int>(
               tokenChoices.size())) {
@@ -1418,10 +1653,14 @@ void MtgTokenActivity::assignSelectedToken() {
   markStateDirty();
 }
 
+
 bool MtgTokenActivity::drawTokenArt(
     const TokenSlot& slot,
     const fui::Rect& artRect) {
-  if (slot.artFile.empty()) {
+  if (
+      slot.artFile.empty() ||
+      artRect.width <= 0 ||
+      artRect.height <= 0) {
     return false;
   }
 
@@ -1443,7 +1682,8 @@ bool MtgTokenActivity::drawTokenArt(
   const BmpReaderError parseResult =
       bitmap.parseHeaders();
 
-  if (parseResult !=
+  if (
+      parseResult !=
       BmpReaderError::Ok) {
     file.close();
 
@@ -1462,70 +1702,213 @@ bool MtgTokenActivity::drawTokenArt(
   const int sourceHeight =
       bitmap.getHeight();
 
-  if (sourceWidth <= 0 ||
-      sourceHeight <= 0 ||
-      artRect.width <= 0 ||
-      artRect.height <= 0) {
+  if (
+      sourceWidth <= 0 ||
+      sourceHeight <= 0) {
     file.close();
 
     return false;
   }
 
-  int drawWidth =
-      sourceWidth;
+  /*
+   * CrossPoint's stock drawBitmap1Bit() only SHRINKS
+   * images that exceed maxWidth/maxHeight. It never
+   * enlarges a smaller image.
+   *
+   * MTG needs true destination-rectangle scaling because:
+   *
+   *   board: 250x250 source -> tile art rectangle
+   *   zoom:  250x250 source -> much larger art rectangle
+   *
+   * We stream the BMP a row at a time and independently
+   * map source X/Y coordinates into the requested rectangle.
+   *
+   * This uses nearest-neighbor scaling, which is ideal for
+   * our already-dithered 1-bit Atkinson artwork. No grayscale
+   * interpolation is introduced on-device.
+   */
 
-  int drawHeight =
-      sourceHeight;
+  const int outputRowSize =
+      (sourceWidth + 3) /
+      4;
+
+  auto outputRow =
+      makeUniqueNoThrow<uint8_t[]>(
+          outputRowSize);
+
+  auto rowBytes =
+      makeUniqueNoThrow<uint8_t[]>(
+          bitmap.getRowBytes());
 
   if (
-      drawWidth > artRect.width ||
-      drawHeight > artRect.height) {
-    if (
-        sourceWidth *
-                artRect.height >
-        sourceHeight *
-                artRect.width) {
-      drawWidth =
-          artRect.width;
+      !outputRow ||
+      !rowBytes) {
+    LOG_ERR(
+        "MTG",
+        "OOM: token art row buffers");
 
-      drawHeight =
-          sourceHeight *
-          artRect.width /
-          sourceWidth;
-    } else {
-      drawHeight =
-          artRect.height;
+    file.close();
 
-      drawWidth =
-          sourceWidth *
-          artRect.height /
-          sourceHeight;
-    }
+    return false;
   }
 
-  const int drawX =
-      artRect.x +
-      (artRect.width -
-       drawWidth) /
-          2;
+  for (int bmpY = 0;
+       bmpY < sourceHeight;
+       ++bmpY) {
+    if (
+        bitmap.readNextRow(
+            outputRow.get(),
+            rowBytes.get()) !=
+        BmpReaderError::Ok) {
+      LOG_ERR(
+          "MTG",
+          "Failed reading token art row %d",
+          bmpY);
 
-  const int drawY =
-      artRect.y +
-      (artRect.height -
-       drawHeight) /
-          2;
+      file.close();
 
-  renderer.drawBitmap1Bit(
-      bitmap,
-      drawX,
-      drawY,
-      drawWidth,
-      drawHeight);
+      return false;
+    }
+
+    /*
+     * BMPs are normally stored bottom-up.
+     * Convert the sequential file row into visual top-down Y.
+     */
+    const int sourceY =
+        bitmap.isTopDown()
+            ? bmpY
+            : sourceHeight -
+                  1 -
+                  bmpY;
+
+    const int destinationY0 =
+        artRect.y +
+        (
+            sourceY *
+            artRect.height
+        ) /
+            sourceHeight;
+
+    const int destinationY1 =
+        artRect.y +
+        (
+            (sourceY + 1) *
+            artRect.height
+        ) /
+            sourceHeight;
+
+    const int destinationHeight =
+        destinationY1 -
+        destinationY0;
+
+    /*
+     * When shrinking vertically, some source rows naturally
+     * collapse into the same destination row.
+     */
+    if (
+        destinationHeight <= 0) {
+      continue;
+    }
+
+    /*
+     * Draw contiguous black source pixels as horizontal runs.
+     * This is considerably cheaper than calling fillRect()
+     * separately for every individual source pixel.
+     */
+    int blackRunStart =
+        -1;
+
+    for (int sourceX = 0;
+         sourceX <= sourceWidth;
+         ++sourceX) {
+      bool isBlack =
+          false;
+
+      if (
+          sourceX <
+          sourceWidth) {
+        /*
+         * Bitmap::readNextRow() supplies packed 2-bit values,
+         * even for a 1-bit source. As in CrossPoint's own
+         * renderer, values below 3 represent black.
+         */
+        const uint8_t value =
+            (
+                outputRow[
+                    sourceX /
+                    4
+                ] >>
+                (
+                    6 -
+                    (
+                        (
+                            sourceX *
+                            2
+                        ) %
+                        8
+                    )
+                )
+            ) &
+            0x3;
+
+        isBlack =
+            value <
+            3;
+      }
+
+      if (
+          isBlack &&
+          blackRunStart < 0) {
+        blackRunStart =
+            sourceX;
+
+        continue;
+      }
+
+      if (
+          !isBlack &&
+          blackRunStart >= 0) {
+        const int destinationX0 =
+            artRect.x +
+            (
+                blackRunStart *
+                artRect.width
+            ) /
+                sourceWidth;
+
+        const int destinationX1 =
+            artRect.x +
+            (
+                sourceX *
+                artRect.width
+            ) /
+                sourceWidth;
+
+        const int destinationWidth =
+            destinationX1 -
+            destinationX0;
+
+        if (
+            destinationWidth > 0) {
+          renderer.fillRect(
+              destinationX0,
+              destinationY0,
+              destinationWidth,
+              destinationHeight,
+              true);
+        }
+
+        blackRunStart =
+            -1;
+      }
+    }
+  }
 
   file.close();
 
   return true;
 }
+
 
 void MtgTokenActivity::buildEditScreen(
     UiScreen& screen) {
@@ -1601,6 +1984,7 @@ void MtgTokenActivity::buildEditScreen(
           ? fui::StateSelected
           : fui::StateNormal);
 }
+
 
 void MtgTokenActivity::buildStatEditorScreen(
     UiScreen& screen) {
@@ -1704,16 +2088,17 @@ void MtgTokenActivity::buildStatEditorScreen(
       valueStyle);
 }
 
+
 void MtgTokenActivity::buildCardTextScreen(
     UiScreen& screen) {
   screen.header(
       "Card Text");
 
   /*
-   * Back = return to Edit menu
-   * BTB  = Back To Board
+   * Read Card Text still lives in the Edit menu.
    *
-   * BTB uses the exact same physical button as Edit/Select.
+   * Back = return to Edit menu.
+   * BTB  = return directly to the board.
    */
   const auto labels =
       mappedInput.mapLabels(
@@ -1807,6 +2192,314 @@ void MtgTokenActivity::buildCardTextScreen(
       slot.oracleText.c_str(),
       textStyle);
 }
+
+
+void MtgTokenActivity::buildZoomScreen(
+    UiScreen& screen) {
+  screen.header(
+      "Token Zoom");
+
+  /*
+   * Zoom has ONE exit now:
+   *
+   * Back -> main token board
+   */
+  const auto labels =
+      mappedInput.mapLabels(
+          "Back",
+          "",
+          "",
+          "");
+
+  const fui::FooterAction footer[] = {
+      {labels.btn1},
+      {labels.btn2},
+      {labels.btn3},
+      {labels.btn4},
+  };
+
+  screen.footer(
+      footer,
+      4);
+
+  screen.insetContent(
+      fui::makeInsets(6));
+
+  const fui::Rect body =
+      screen.body();
+
+  auto& target =
+      screen.target();
+
+  const TokenSlot& slot =
+      slots[selectedSlot];
+
+  const fui::Paint black =
+      fui::Paint::solid(
+          fui::Color::Black);
+
+  const fui::Rect cardRect =
+      body.inset(
+          fui::Insets{
+              4,
+              4,
+              4,
+              4});
+
+  target.stroke(
+      cardRect,
+      black,
+      3,
+      8);
+
+  const fui::Rect inside =
+      cardRect.inset(
+          fui::Insets{
+              8,
+              8,
+              8,
+              8});
+
+  /*
+   * ======================================================
+   * NAME + QUANTITY
+   * ======================================================
+   */
+  fui::TextStyle nameStyle =
+      screen.theme().titleText;
+
+  nameStyle.align =
+      fui::TextAlign::Left;
+
+  nameStyle.bold =
+      true;
+
+  fui::TextStyle quantityStyle =
+      screen.theme().titleText;
+
+  quantityStyle.align =
+      fui::TextAlign::Center;
+
+  quantityStyle.bold =
+      true;
+
+  const int nameBarHeight =
+      target.lineHeight(
+          nameStyle.font) +
+      12;
+
+  const fui::Rect nameBar =
+      fui::makeRect(
+          inside.x,
+          inside.y,
+          inside.width,
+          nameBarHeight);
+
+  target.stroke(
+      nameBar,
+      black,
+      2,
+      5);
+
+  constexpr int quantityBoxWidth =
+      72;
+
+  const fui::Rect cardNameRect =
+      fui::makeRect(
+          nameBar.x + 8,
+          nameBar.y,
+          nameBar.width -
+              quantityBoxWidth -
+              16,
+          nameBar.height);
+
+  const fui::Rect cardQuantityRect =
+      fui::makeRect(
+          nameBar.right() -
+              quantityBoxWidth,
+          nameBar.y,
+          quantityBoxWidth,
+          nameBar.height);
+
+  target.text(
+      cardNameRect,
+      slot.name.empty()
+          ? "EMPTY"
+          : slot.name.c_str(),
+      nameStyle);
+
+  char quantityText[20];
+
+  snprintf(
+      quantityText,
+      sizeof(quantityText),
+      "x%d",
+      slot.quantity);
+
+  target.text(
+      cardQuantityRect,
+      quantityText,
+      quantityStyle);
+
+  /*
+   * ======================================================
+   * LARGE STRETCHED ART
+   * ======================================================
+   */
+  const int artTop =
+      nameBar.bottom() +
+      8;
+
+  const int artHeight =
+      275;
+
+  const fui::Rect artBox =
+      fui::makeRect(
+          inside.x,
+          artTop,
+          inside.width,
+          artHeight);
+
+  target.stroke(
+      artBox,
+      black,
+      2,
+      4);
+
+  const bool artDrawn =
+      drawTokenArt(
+          slot,
+          artBox);
+
+  if (!artDrawn) {
+    fui::TextStyle missingArtStyle =
+        screen.theme().bodyText;
+
+    missingArtStyle.align =
+        fui::TextAlign::Center;
+
+    target.text(
+        artBox,
+        "ART",
+        missingArtStyle);
+  }
+
+  /*
+   * ======================================================
+   * P/T + TOTAL P/T
+   * ======================================================
+   */
+  fui::TextStyle statStyle =
+      screen.theme().titleText;
+
+  statStyle.align =
+      fui::TextAlign::Center;
+
+  statStyle.bold =
+      true;
+
+  const int statBarHeight =
+      target.lineHeight(
+          statStyle.font) +
+      10;
+
+  const int statTop =
+      artBox.bottom() +
+      8;
+
+  const fui::Rect statBar =
+      fui::makeRect(
+          inside.x,
+          statTop,
+          inside.width,
+          statBarHeight);
+
+  target.stroke(
+      statBar,
+      black,
+      2,
+      5);
+
+  const std::string statSummary =
+      buildStatSummary(
+          slot);
+
+  if (statSummary.empty()) {
+    target.text(
+        statBar,
+        "P/T: --",
+        statStyle);
+
+  } else {
+    target.text(
+        statBar,
+        statSummary.c_str(),
+        statStyle);
+  }
+
+  /*
+   * ======================================================
+   * RULES TEXT
+   * ======================================================
+   */
+  const int rulesTop =
+      statBar.bottom() +
+      8;
+
+  int rulesHeight =
+      inside.bottom() -
+      rulesTop;
+
+  if (rulesHeight < 20) {
+    rulesHeight = 20;
+  }
+
+  const fui::Rect rulesBox =
+      fui::makeRect(
+          inside.x,
+          rulesTop,
+          inside.width,
+          rulesHeight);
+
+  target.stroke(
+      rulesBox,
+      black,
+      2,
+      5);
+
+  const fui::Rect rulesTextRect =
+      rulesBox.inset(
+          fui::Insets{
+              10,
+              8,
+              10,
+              8});
+
+  fui::TextStyle rulesStyle =
+      screen.theme().bodyText;
+
+  rulesStyle.align =
+      fui::TextAlign::Left;
+
+  rulesStyle.maxLines = 9;
+
+  if (slot.oracleText.empty()) {
+    rulesStyle.align =
+        fui::TextAlign::Center;
+
+    target.text(
+        rulesTextRect,
+        "No rules text",
+        rulesStyle);
+
+  } else {
+    target.text(
+        rulesTextRect,
+        slot.oracleText.c_str(),
+        rulesStyle);
+  }
+}
+
 
 void MtgTokenActivity::buildAlphabetScreen(
     UiScreen& screen) {
@@ -1918,6 +2611,7 @@ void MtgTokenActivity::buildAlphabetScreen(
   }
 }
 
+
 void MtgTokenActivity::buildTokenPickerScreen(
     UiScreen& screen) {
   const char letter =
@@ -2024,9 +2718,11 @@ void MtgTokenActivity::buildTokenPickerScreen(
            TOKEN_ROWS_PER_PAGE;
        ++row) {
     const int tokenIndex =
-        pageStart + row;
+        pageStart +
+        row;
 
-    if (tokenIndex >=
+    if (
+        tokenIndex >=
         totalTokens) {
       break;
     }
@@ -2078,17 +2774,24 @@ void MtgTokenActivity::buildTokenPickerScreen(
   }
 }
 
+
 void MtgTokenActivity::buildTokenScreen(
     UiScreen& screen) {
   screen.header(
       "MTG Tokens");
 
+  /*
+   * Right now advertises both actions:
+   *
+   * tap  = Right / next tile
+   * hold = Zoom
+   */
   const auto labels =
       mappedInput.mapLabels(
           "Back",
           "Edit",
           "Left",
-          "Right");
+          "Right [ZM]");
 
   const fui::FooterAction footer[] = {
       {labels.btn1},
@@ -2151,6 +2854,15 @@ void MtgTokenActivity::buildTokenScreen(
       fui::TextAlign::Center;
 
   quantityStyle.bold =
+      true;
+
+  fui::TextStyle rulesIndicatorStyle =
+      screen.theme().bodyText;
+
+  rulesIndicatorStyle.align =
+      fui::TextAlign::Center;
+
+  rulesIndicatorStyle.bold =
       true;
 
   fui::TextStyle emptyStyle =
@@ -2260,6 +2972,17 @@ void MtgTokenActivity::buildTokenScreen(
             inner.width,
             quantityHeight);
 
+    constexpr int rulesIndicatorWidth =
+        48;
+
+    const fui::Rect rulesIndicatorRect =
+        fui::makeRect(
+            quantityRect.right() -
+                rulesIndicatorWidth,
+            quantityRect.y,
+            rulesIndicatorWidth,
+            quantityRect.height);
+
     const int statY =
         quantityY -
         statHeight;
@@ -2280,11 +3003,18 @@ void MtgTokenActivity::buildTokenScreen(
         artY -
         2;
 
+    /*
+     * Keep the art frame almost edge-to-edge within
+     * the selected tile.
+     *
+     * drawTokenArt() now REALLY stretches the image
+     * to fill this rectangle.
+     */
     const fui::Rect artRect =
         fui::makeRect(
-            inner.x,
+            cell.x + 2,
             artY,
-            inner.width,
+            cell.width - 4,
             artHeight);
 
     const TokenSlot& slot =
@@ -2329,74 +3059,14 @@ void MtgTokenActivity::buildTokenScreen(
       }
     }
 
-    /*
-     * Individual P/T and total P/T on the same line.
-     *
-     * Example:
-     *
-     *   3/1   [T]:9/3
-     */
-    if (!slot.power.empty() ||
-        !slot.toughness.empty()) {
-      char statText[64];
+    const std::string statSummary =
+        buildStatSummary(
+            slot);
 
-      char* powerEnd = nullptr;
-      char* toughnessEnd = nullptr;
-
-      const long powerValue =
-          std::strtol(
-              slot.power.c_str(),
-              &powerEnd,
-              10);
-
-      const long toughnessValue =
-          std::strtol(
-              slot.toughness.c_str(),
-              &toughnessEnd,
-              10);
-
-      const bool powerNumeric =
-          !slot.power.empty() &&
-          powerEnd !=
-              slot.power.c_str() &&
-          *powerEnd == '\0';
-
-      const bool toughnessNumeric =
-          !slot.toughness.empty() &&
-          toughnessEnd !=
-              slot.toughness.c_str() &&
-          *toughnessEnd == '\0';
-
-      if (powerNumeric &&
-          toughnessNumeric) {
-        const long totalPower =
-            powerValue *
-            slot.quantity;
-
-        const long totalToughness =
-            toughnessValue *
-            slot.quantity;
-
-        snprintf(
-            statText,
-            sizeof(statText),
-            "%s/%s   [T]:%ld/%ld",
-            slot.power.c_str(),
-            slot.toughness.c_str(),
-            totalPower,
-            totalToughness);
-      } else {
-        snprintf(
-            statText,
-            sizeof(statText),
-            "%s/%s",
-            slot.power.c_str(),
-            slot.toughness.c_str());
-      }
-
+    if (!statSummary.empty()) {
       target.text(
           statRect,
-          statText,
+          statSummary.c_str(),
           statStyle);
     }
 
@@ -2412,8 +3082,16 @@ void MtgTokenActivity::buildTokenScreen(
         quantityRect,
         quantityText,
         quantityStyle);
+
+    if (!slot.oracleText.empty()) {
+      target.text(
+          rulesIndicatorRect,
+          "*?*",
+          rulesIndicatorStyle);
+    }
   }
 }
+
 
 void MtgTokenActivity::render(
     RenderLock&&) {
