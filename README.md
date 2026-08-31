@@ -1,287 +1,410 @@
-# CrossPoint Reader
+## Disclaimer
 
-[![Fund contributors](https://img.shields.io/badge/%F0%9F%91%91_Fund_contributors-royalty.dev-BB953A?style=for-the-badge&labelColor=1a1a1a)](https://app.royalty.dev/crosspoint-reader/crosspoint-reader)
+This is an independent hobby project.
 
-CrossPoint is open-source e-reader firmware - community-built, fully hackable, free forever. It's maintained by a growing community of developers and readers who believe your device should do what you want - not what a manufacturer decided for you.
+CrossPoint MTG Token Board is not affiliated with or endorsed by Wizards of the Coast, Magic: The Gathering, Scryfall, XTEINK, or the CrossPoint Reader project.
 
-**Now running on:** ESP32C3-based Xteink [X4](https://www.xteink.com/products/xteink-x4) and [X3](https://www.xteink.com/products/xteink-x3).
+Magic: The Gathering card names, artwork, rules text, and related intellectual property belong to their respective rights holders.
 
-![CrossPoint Reader running on Xteink device](./docs/images/cover.jpg)
-
-> If you're planning to buy an Xteink device, consider purchasing an **X3/X4 Developer Edition** through https://crosspointreader.com. CrossPoint receives a small share of each sale, helping fund development costs.
-
-## What can CrossPoint do?
-
-- **Reader engine**: EPUB 2/3 rendering with embedded-style option, image handling, hyphenation, kerning, chapter navigation, footnotes, bookmarks, dictionary lookups ([StarDict](docs/dictionary.md)), go-to-percent, auto page turn, orientation control, focus reading, KOReader progress sync and more. 
-
-- **Various formats**: native handling for `.epub`, `.xtc/.xtch`, `.txt`, and `.bmp`.
-
-- **Screenshots.**
-
-- **Custom fonts**: install your favorite fonts on the SD card.
-
-- **Tilt page turn (X3 only)**.
-
-- **Library workflow**: folder browser, hidden-file toggle, long-press delete, recent books, SD-cache management.
-
-- **Wireless workflows**:
-  
-  - File transfer web UI
-  - EPUB Optimizer
-  - Web settings UI/API (edit many device settings from browser)
-  - WebSocket fast uploads
-  - WebDAV handler
-  - AP mode (hotspot) and STA mode (join existing Wi-Fi), both with QR helpers
-  - Calibre wireless connect flow
-  - OPDS browser with saved servers (up to 8), search, pagination, and direct download
-  - OTA update checks and installs from GitHub releases
-
-- **Customization**: multiple themes (Classic, Lyra, Lyra Extended, RoundedRaff), sleep screen modes including transparent overlays, front/side button remapping, status bar controls, power-button behavior, refresh cadence, and more.
-
-- **Localization**: 24 UI languages and counting. RTL support.
-
-### Coming soon:
-
-- More themes.
-
-- Much more! stay tuned.
+Token data and artwork used by the SD-card generation tools are obtained from Scryfall.
 
 ---
 
-## USB-locked devices (Xteink Unlocker)
+## Credits
 
-Some Xteink units purchased from third-party stores (e.g. AliExpress) ship with USB flashing locked from the factory.
-If your device is locked, you will need to use the **Xteink Unlocker** tool available at
-https://crosspointreader.com/#unlock-tool before you can flash CrossPoint.
+### CrossPoint Reader
 
-**You do not need this tool if you bought your device directly from xteink.com.** Those units are not locked.
+The overwhelming majority of the device firmware, hardware support, renderer infrastructure, reader functionality, and UI foundation comes from the CrossPoint Reader project and its contributors.
 
-**Not sure if your device is locked?** Power it on, connect the USB-C cable, and try flashing via the web flasher first (see
-[Install firmware](#install-firmware) below). If the browser's serial device picker does not show your device, try a different
-USB port or browser before assuming the device is locked. Only reach for the unlocker if the device still doesn't appear.
+CrossPoint MTG Token Board would not exist without that work.
 
-> ### ⚠️ WARNING: READ THIS BEFORE USING THE UNLOCKER ⚠️
-> 
-> **The only officially supported firmwares in the unlock tool are CrossPoint and CrossInk.**
-> 
-> Flashing any other firmware on a USB-locked device may **permanently brick the device** or leave it **permanently
-> stuck on that firmware with no recovery path**. Once USB flashing is re-locked, your only way back is via OTA, and if
-> the firmware you flashed doesn't support OTA, **there is no way out**.
+### Scryfall
 
-## Install firmware
+Scryfall provides the card and token data used to generate the offline token library and artwork set.
 
-### Web installer (recommended)
+### CrossPoint MTG Token Board
 
-1. Connect your device to your computer via USB-C and wake/unlock the device
-2. Go to https://crosspointreader.com/#flash-tools, select device (X3 or X4), and choose an official CrossPoint release.
 
-### Web installer (specific version)
+!!!!!!!CrossPoint MTG Token Board!!!!!!!
 
-1. Connect your device to your computer via USB-C and wake/unlock the device
-2. Download a `firmware.bin` from [Releases](https://github.com/crosspoint-reader/crosspoint-reader/releases), local build, or continuous integration artifact.
-3. Go to https://crosspointreader.com/#flash-tools, select device (X3 or X4), click "Custom .bin" and upload a `firmware.bin`.
+An MTG token and game-state board for the XTEINK X3 e-paper reader, built as a fork of CrossPoint Reader.
 
-### Revert to Official Firmware
+CrossPoint MTG Token Board turns the X3 into a compact four-slot Magic: The Gathering token display. Each slot can represent a different token, track quantity and power/toughness, display token artwork, calculate combined power/toughness, and provide quick access to rules text.
 
-To revert to the official firmware, you can also flash the latest official firmware using https://crosspointreader.com/#flash-tools.
+The original CrossPoint e-reader functionality remains available alongside the MTG Token Board.
 
-### Command line
-
-1. Install [`esptool`](https://github.com/espressif/esptool):
-
-```bash
-pip install esptool
-```
-
-2. Download `firmware.bin` from the [releases page](https://github.com/crosspoint-reader/crosspoint-reader/releases).
-3. Connect your device via USB-C.
-4. Find the device port. On Linux, run `dmesg` after connecting. On macOS:
-
-```bash
-log stream --predicate 'subsystem == "com.apple.iokit"' --info
-```
-
-5. Flash:
-
-```bash
-esptool.py --chip esp32c3 --port /dev/ttyACM0 --baud 921600 write_flash 0x10000 /path/to/firmware.bin
-```
-
-Adjust `/dev/ttyACM0` to match your system.
-
-### Manual
-
-See [Development quick start](#development-quick-start) below.
+**Current release: 1.2**
 
 ---
 
-## Custom SD-card fonts
+## Why?
 
-Convert your own TTF/OTF files into `.cpfont` files that load from the SD card. No firmware reflash is needed.
+Token-heavy Commander decks can become difficult to manage with physical token cards, counters, dice, and copies of the same creature.
 
-1. Go to https://crosspointreader.com/fonts and open the "SD-card font builder" form.
-2. Upload up to four styles (regular, bold, italic, bold-italic), set the family name, point sizes, and Unicode range.
-3. Download the generated `.cpfont` files.
-4. Copy them to your SD card under `/fonts/YourFont/` (or `/.fonts/YourFont/` to hide the folder).
-5. Select the font on the device from the font settings.
+The XTEINK X3 is a small ESP32-C3-based e-paper reader with an SD card slot and physical controls, which makes it a surprisingly good platform for a persistent tabletop token display.
 
-Conversion runs the firmware repo's `lib/EpdFont/scripts/fontconvert_sdcard.py` script unmodified, so output matches a local host build.
+The goal of this project is to provide a token board that is:
 
----
-
-## Documentation
-
-- [User Guide](./USER_GUIDE.md)
-- [Web server usage](./docs/webserver.md)
-- [Web server endpoints](./docs/webserver-endpoints.md)
-- [Project scope](./SCOPE.md)
-- [Contributing docs](./docs/contributing/README.md)
-- [Touch and UI development](./docs/contributing/touch-and-ui.md) - how to build new screens on the FreeInkUI activity bases (UiListActivity and friends), plus build envs for the non-Xteink touch devices
+- Easy to read across the table
+- Fast to update during a game
+- Persistent between sessions
+- Usable without Wi-Fi
+- Capable of storing a large token library on inexpensive microSD storage
+- Lightweight enough for the limited RAM available on the ESP32-C3
 
 ---
 
-## Development quick start
+## Features
 
-### Prerequisites
+### Four-token board
 
-- [pioarduino](https://github.com/pioarduino/pioarduino) or VS Code + pioarduino plugin
-- Python 3.8+
-- `clang-format` 21
-- USB-C cable supporting data transfer
+The main screen contains four independently configurable token slots.
 
-### Setup
+Each populated slot displays:
 
-```bash
-git clone --recursive https://github.com/crosspoint-reader/crosspoint-reader
-cd crosspoint-reader
+- Token name
+- Token artwork
+- Power/toughness
+- Quantity
+- Total combined power/toughness
+- Rules-text availability indicator
 
-# if cloned without --recursive:
-git submodule update --init --recursive
+For example, three 3/1 tokens display:
+
+```text
+3/1   [T]:9/3
+x 3
 ```
 
-### Nix/NixOS
+`[T]` represents the combined power and toughness of every token in that slot.
 
-Nix/NixOS users can enter the development shell with either `nix develop` (flakes) or `nix-shell`:
+If rules text is available for the token, the quantity row displays:
 
-```bash
-nix develop -f nix
-# or
-nix-shell nix
+```text
+*?*
 ```
 
-To flash a connected ESP32-C3 device, enable PlatformIO's udev rules in your NixOS configuration:
+---
 
-```nix
-services.udev.packages = with pkgs; [ platformio-core.udev ];
+## Persistent State
+
+The token board saves its state to the microSD card.
+
+The following survive leaving the MTG app or restarting the device:
+
+- Selected token
+- Quantity
+- Edited power
+- Edited toughness
+- Artwork path
+- Rules text
+
+A new board starts with four empty slots.
+
+Individual slots or the entire board can be cleared from the Edit menu.
+
+---
+
+## Token Zoom
+
+Hold the main board's **Right [ZM]** button for approximately **1.3 seconds** to open Token Zoom for the selected slot.
+
+Zoom mode presents the token in a card-like layout with:
+
+- Token name
+- Quantity
+- Large artwork
+- Power/toughness
+- Total combined power/toughness
+- Rules text
+
+While Zoom is open, the physical side buttons can still adjust quantity.
+
+Changes are reflected immediately in both quantity and total power/toughness.
+
+Press **Back** to return to the four-token board.
+
+---
+
+## Controls
+
+### Main Token Board
+
+| Control | Action |
+| --- | --- |
+| Back | Return to CrossPoint home |
+| Edit | Open Edit menu |
+| Bottom-right Left | Previous token slot |
+| Bottom-right Right | Next token slot |
+| Hold Right ~1.3 sec | Token Zoom |
+| Physical left side button | -1 quantity |
+| Physical right side button | +1 quantity |
+
+### Zoom
+
+| Control | Action |
+| --- | --- |
+| Back | Return to token board |
+| Physical left side button | -1 quantity |
+| Physical right side button | +1 quantity |
+
+---
+
+## Edit Menu
+
+Each token slot has an Edit menu containing:
+
+```text
+Change Card
+Edit Power
+Edit Toughness
+Read Card Text
+Clear Card
+Clear Board
 ```
 
-After rebuilding the system configuration, reconnect the device or reload udev rules.
+### Change Card
 
-### Build / flash / monitor
+The token picker first displays an alphabet screen.
 
-```bash
-pio run --target upload
+Select the first letter of the token name, then browse only tokens beginning with that letter.
+
+This avoids loading or displaying the entire token database at once.
+
+### Edit Power / Toughness
+
+Power and toughness can be modified independently from the original token definition.
+
+This is useful for effects that permanently or temporarily change a token's effective stats during a game.
+
+### Read Card Text
+
+Displays the stored Oracle/rules text for the selected token in a dedicated text view.
+
+### Clear Card
+
+Returns only the selected slot to Empty.
+
+### Clear Board
+
+Returns all four slots to Empty.
+
+---
+
+## Token Library
+
+The current library contains **526 unique token names**.
+
+The library intentionally contains only one entry for each token name.
+
+For example, Magic may have many different Elemental token printings with different colors, power/toughness values, or artwork. The picker contains one canonical:
+
+```text
+Elemental
 ```
 
-### Contributor pre-PR checks
+rather than dozens of Elemental variants.
 
-```bash
-./bin/clang-format-fix
-pio check -e default
+Power and toughness are editable on the device, so duplicate token-name entries are unnecessary.
+
+This keeps Change Card significantly faster and easier to navigate.
+
+---
+
+## Artwork
+
+Token artwork is stored on the microSD card rather than compiled into firmware.
+
+Current Art Rev2 format:
+
+```text
+250 x 250 pixels
+1-bit BMP
+Atkinson dithering
+One artwork per unique token name
+```
+
+Artwork is generated from Scryfall art crops.
+
+The source artwork is resized before being converted to 1-bit, avoiding additional dithering passes.
+
+Atkinson dithering was selected after testing multiple conversion methods on the physical XTEINK X3 display.
+
+The firmware includes a custom nearest-neighbor 1-bit renderer that can stretch the same 250x250 artwork to fit both:
+
+- The smaller four-token board frames
+- The much larger Token Zoom artwork frame
+
+This allows one SD-card image to serve both interfaces.
+
+---
+
+## SD Card Layout
+
+The MTG data is stored separately from normal CrossPoint files.
+
+```text
+/MTG/
+├── data/
+│   └── tokens.tsv
+│
+├── index/
+│   ├── A.tsv
+│   ├── B.tsv
+│   ├── C.tsv
+│   ├── ...
+│   └── Z.tsv
+│
+├── art/
+│   ├── A/
+│   │   └── *.bmp
+│   ├── B/
+│   │   └── *.bmp
+│   ├── ...
+│   └── Z/
+│       └── *.bmp
+│
+└── session/
+    └── state.tsv
+```
+
+### Why the alphabet folders?
+
+The ESP32-C3 has very limited RAM.
+
+Rather than loading metadata for hundreds of tokens simultaneously, Change Card loads only the small index corresponding to the selected first letter.
+
+Artwork itself is not loaded while browsing the picker.
+
+Only after a token is selected does the firmware open its BMP from the SD card.
+
+---
+
+## Token Data
+
+The per-letter token indexes contain information such as:
+
+```text
+token_id
+name
+power
+toughness
+colors
+art_file
+oracle_text
+```
+
+Rules text preserves line breaks so it can be displayed naturally by the Read Card Text and Token Zoom views.
+
+---
+
+## MTG Build Tools
+
+Utility scripts for creating the SD-card library live under:
+
+```text
+tools/mtg/
+```
+
+These scripts are used to:
+
+- Retrieve Scryfall bulk data
+- Find token and emblem entries
+- Deduplicate entries by token name
+- Generate the master token database
+- Generate alphabet indexes
+- Download token artwork
+- Resize artwork
+- Apply Atkinson dithering
+- Generate X3-compatible 1-bit BMP files
+
+The resulting SD-card database and artwork are intentionally kept outside the firmware image.
+
+---
+
+## Building the Firmware
+
+The project uses the same PlatformIO-based build system as CrossPoint Reader.
+
+Typical build:
+
+```powershell
 pio run -e default
 ```
 
-### Debugging
+Build and upload to a connected device using the appropriate PlatformIO upload target for your XTEINK X3 development setup.
 
-After flashing the new features, it’s recommended to capture detailed logs from the serial port.
-
-First, make sure all required Python packages are installed:
-
-```python
-python3 -m pip install pyserial colorama matplotlib
-```
-
-After that run the script:
-
-```sh
-# For Linux
-# This was tested on Debian and should work on most Linux systems.
-python3 scripts/debugging_monitor.py
-
-# For macOS
-python3 scripts/debugging_monitor.py /dev/cu.usbmodem2101
-```
-
-Minor adjustments may be required for Windows.
+The MTG token database and artwork must be installed separately on the microSD card.
 
 ---
 
-## Internals
+## Based on CrossPoint Reader
 
-CrossPoint Reader is pretty aggressive about caching data down to the SD card to minimise RAM usage. The ESP32-C3 only has ~380KB of usable RAM, so we have to be careful. A lot of the decisions made in the design of the firmware were based on this constraint.
+This project is a fork of **CrossPoint Reader**.
 
-### Data caching
+CrossPoint Reader is community-developed, open-source firmware for e-paper reading devices including the XTEINK X3 and X4.
 
-The first time chapters of a book are loaded, they are cached to the SD card. Subsequent loads are served from the
-cache. This cache directory exists at `.crosspoint` on the SD card. The structure is as follows:
+It provides the underlying platform used by this project, including:
+
+- XTEINK X3 hardware support
+- E-paper rendering
+- Physical button handling
+- SD-card access
+- UI framework and navigation
+- Power management
+- EPUB and document reading
+- File browsing
+- Settings and device infrastructure
+
+CrossPoint MTG Token Board adds the MTG application while retaining the underlying CrossPoint reader experience.
+
+Upstream project:
 
 ```text
-.crosspoint/
-├── epub_<hash>/         # one directory per book, named by content hash
-│   ├── progress.bin     # reading position (chapter, page, etc.)
-│   ├── cover.bmp        # generated cover image
-│   ├── book.bin         # metadata: title, author, spine, TOC
-│   ├── css_rules.cache  # parsed CSS rule cache
-│   ├── img_*            # rendered image cache files
-│   └── sections/        # per-chapter layout cache
-│       ├── 0.bin
-│       ├── 1.bin
-│       └── ...
-├── settings.json        # device settings
-├── state.json           # resume/runtime state
-└── recent.json          # recent books list
+crosspoint-reader/crosspoint-reader
 ```
 
-Removing `/.crosspoint` clears all cached metadata and forces a full regeneration on next open. Book deletes, overwrites, and moves done through the firmware or web UI clear or re-key matching caches; manual SD-card edits may leave stale cache directories behind.
-
-For more details on the internal file structures, see the [file formats document](./docs/file-formats.md).
+If you are interested primarily in using the XTEINK device as an e-reader rather than an MTG token board, the upstream CrossPoint Reader project is the place to start.
 
 ---
 
-## Contributing
+## Project History
 
-Contributions are welcome. If you're new to the codebase, start with the [contributing docs](./docs/contributing/README.md). For things to work on, check the [ideas discussion board](https://github.com/crosspoint-reader/crosspoint-reader/discussions/categories/ideas) — leave a comment before starting so we don't duplicate effort.
+### 1.2
 
-Everyone here is a volunteer, so please be respectful and patient. For governance and community expectations, see [GOVERNANCE.md](./GOVERNANCE.md).
+- Added Token Zoom
+- Added 1.3-second Right-button Zoom shortcut
+- Added large token artwork to Zoom
+- Added quantity controls while Zoom is open
+- Added calculated total P/T to Zoom
+- Added rules text to Zoom
+- Added rules-text availability indicator to token tiles
+- Added `Right [ZM]` control hint
+- Added true stretched 1-bit artwork rendering
+- Standardized artwork on 250x250 Atkinson-dithered BMPs
+- Expanded artwork to use more of the token tile
+- Removed the old long-hold Edit text shortcut
+- Simplified Zoom exit to Back
 
----
-
-## Community forks
-
-One of the best things about open source is that anyone can take the code in a different direction. If you need something outside CrossPoint's [scope](./SCOPE.md), check out the community forks:
-
-- [CrossInk](https://github.com/uxjulia/CrossInk) — Typography and reading tracking: Bionic Reading (bolds word stems to create fixation points), guide dots between words, improved paragraph indents, and replaces the default fonts with ChareInk/Lexend/Bitter.
-
-- [papyrix-reader](https://github.com/bigbag/papyrix-reader) — Adds FB2 and MD format support. Actively maintained with Arabic script support. Custom themes via SD card.
-
-- ~~[crosspet](https://github.com/trilwu/crosspet) — A Vietnamese fork that adds a Tamagotchi-style virtual chicken that grows based on your reading milestones (pages read, streaks, care). Also: Flashcards, Weather, Pomodoro timer, and mini-games.~~ (Unmaintained)
-
-- [crosspoint-reader-cjk](https://github.com/aBER0724/crosspoint-reader-cjk) — Purpose-built for Chinese, Japanese, and Korean reading.
-
-- [inx](https://github.com/obijuankenobiii/inx) — Completely reimagines the user interface with tabbed navigation.
-
-- ~~[PlusPoint](https://github.com/ngxson/pluspoint-reader) — custom JS apps support.~~ (Unmaintained)
-
-- [crosspoint-reader-papers3](https://github.com/juicecultus/crosspoint-reader-papers3) — Crosspoint port for M5Stack Paper S3. 
-
-- [t5s3-reader](https://github.com/ShallowGreen123/t5s3-reader) — Crosspoint port for LilyGo T5 ePaper S3 / T5S3 4.7-inch e-paper device.
-
-**Note:** Many of these features will make their way into CrossPoint over time. We maintain a slower pace to ensure rock-solid stability and squash bugs before they reach your device.
-
-Want to build your own device? Be sure to check out the [de-link](https://github.com/iandchasse/de-link) project.
+See `CHANGELOG.md` for the full release history.
 
 ---
 
-CrossPoint Reader is **not affiliated with Xteink or any device manufacturer**.
+## Upstream Compatibility
 
-Huge shoutout to [diy-esp32-epub-reader](https://github.com/atomic14/diy-esp32-epub-reader), which inspired this project.
+Because this project is a specialized CrossPoint Reader fork, upstream CrossPoint development may continue independently.
+
+Where practical, the MTG functionality is kept isolated under:
+
+```text
+src/activities/mtg/
+tools/mtg/
+```
+
+This should make future upstream merges easier and reduce unnecessary modifications to the rest of CrossPoint.
+
+---
+
+
+
+The MTG-specific application adds the token board, persistent token state, SD-backed token database, token picker, artwork processing pipeline, rules-text views, quantity/stat tracking, and Token Zoom interface.
