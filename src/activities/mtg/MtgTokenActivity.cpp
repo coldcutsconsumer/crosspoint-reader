@@ -78,25 +78,31 @@ void MtgTokenActivity::loop() {
     return;
   }
 
-  buttonNavigator.onPrevious([this] {
-    moveSelection(-1);
-  });
+// Side buttons select the previous/next token.
+buttonNavigator.onPressAndContinuous(
+    {MappedInputManager::Button::Up},
+    [this] {
+      moveSelection(-1);
+    });
 
-  buttonNavigator.onNext([this] {
-    moveSelection(1);
-  });
+buttonNavigator.onPressAndContinuous(
+    {MappedInputManager::Button::Down},
+    [this] {
+      moveSelection(1);
+    });
 
-  buttonNavigator.onPressAndContinuous(
-      {MappedInputManager::Button::Left},
-      [this] {
-        adjustQuantity(-1);
-      });
+// Bottom-right front buttons adjust the selected token's quantity.
+buttonNavigator.onPressAndContinuous(
+    {MappedInputManager::Button::Left},
+    [this] {
+      adjustQuantity(-1);
+    });
 
-  buttonNavigator.onPressAndContinuous(
-      {MappedInputManager::Button::Right},
-      [this] {
-        adjustQuantity(1);
-      });
+buttonNavigator.onPressAndContinuous(
+    {MappedInputManager::Button::Right},
+    [this] {
+      adjustQuantity(1);
+    });
 }
 
 void MtgTokenActivity::tokenScreen(UiScreen& screen, void* user) {
@@ -106,14 +112,16 @@ void MtgTokenActivity::tokenScreen(UiScreen& screen, void* user) {
 void MtgTokenActivity::buildTokenScreen(UiScreen& screen) {
   screen.header("MTG Tokens");
 
-  const fui::FooterAction footer[] = {
-      {"Back"},
-      {""},
-      {"-1"},
-      {"+1"},
-  };
+const auto labels = mappedInput.mapLabels("Back", "Edit", "-1", "+1");
 
-  screen.footer(footer, 4);
+const fui::FooterAction footer[] = {
+    {labels.btn1},
+    {labels.btn2},
+    {labels.btn3},
+    {labels.btn4},
+};
+
+screen.footer(footer, 4);
   screen.insetContent(fui::makeInsets(8));
 
   const fui::Rect body = screen.body();
