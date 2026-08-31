@@ -57,7 +57,7 @@ class MtgTokenActivity final : public Activity, private UiAppHost {
   };
 
   static constexpr int SLOT_COUNT = 4;
-  static constexpr int EDIT_ITEM_COUNT = 7;
+  static constexpr int EDIT_ITEM_COUNT = 6;
   static constexpr int LETTER_COUNT = 26;
   static constexpr int TOKEN_ROWS_PER_PAGE = 8;
 

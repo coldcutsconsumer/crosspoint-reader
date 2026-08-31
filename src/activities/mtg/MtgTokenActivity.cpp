@@ -10,6 +10,14 @@
 
 namespace fui = freeink::ui;
 
+namespace {
+
+// Edit shortcut was previously 3000 ms.
+// 2000 ms is about 33% faster.
+constexpr unsigned long EDIT_LONG_PRESS_MS = 2000;
+
+}  // namespace
+
 MtgTokenActivity::MtgTokenActivity(
     GfxRenderer& renderer,
     MappedInputManager& mappedInput)
@@ -95,12 +103,9 @@ void MtgTokenActivity::clearSelectedCard() {
   editStatValue = 0;
 
   markStateDirty();
-
-  // Destructive menu actions save immediately.
   saveState();
 
-  setView(
-      View::TokenGrid);
+  setView(View::TokenGrid);
 }
 
 void MtgTokenActivity::clearBoard() {
@@ -119,12 +124,9 @@ void MtgTokenActivity::clearBoard() {
   tokenLoadError = false;
 
   markStateDirty();
-
-  // Explicit board clear persists immediately.
   saveState();
 
-  setView(
-      View::TokenGrid);
+  setView(View::TokenGrid);
 }
 
 void MtgTokenActivity::markStateDirty() {
@@ -172,8 +174,7 @@ std::string MtgTokenActivity::escapeSessionField(
         break;
 
       default:
-        result.push_back(
-            character);
+        result.push_back(character);
         break;
     }
   }
@@ -197,9 +198,7 @@ std::string MtgTokenActivity::unescapeSessionField(
     if (
         character != '\\' ||
         i + 1 >= value.size()) {
-      result.push_back(
-          character);
-
+      result.push_back(character);
       continue;
     }
 
@@ -208,31 +207,24 @@ std::string MtgTokenActivity::unescapeSessionField(
 
     switch (escaped) {
       case 'n':
-        result.push_back(
-            '\n');
+        result.push_back('\n');
         break;
 
       case 'r':
-        result.push_back(
-            '\r');
+        result.push_back('\r');
         break;
 
       case 't':
-        result.push_back(
-            '\t');
+        result.push_back('\t');
         break;
 
       case '\\':
-        result.push_back(
-            '\\');
+        result.push_back('\\');
         break;
 
       default:
-        result.push_back(
-            '\\');
-
-        result.push_back(
-            escaped);
+        result.push_back('\\');
+        result.push_back(escaped);
         break;
     }
   }
@@ -245,8 +237,7 @@ bool MtgTokenActivity::splitSessionLine(
     const size_t expectedFields,
     std::vector<std::string>& fields) {
   fields.clear();
-  fields.reserve(
-      expectedFields);
+  fields.reserve(expectedFields);
 
   size_t start = 0;
 
@@ -291,12 +282,6 @@ bool MtgTokenActivity::saveState() {
 
   data.reserve(2048);
 
-  /*
-   * X3MTG2 adds oracleText as the seventh field.
-   *
-   * Newlines are escaped here so each tile remains exactly
-   * one physical line in the session file.
-   */
   data += "X3MTG2\n";
 
   for (int i = 0; i < SLOT_COUNT; ++i) {
@@ -387,7 +372,6 @@ bool MtgTokenActivity::loadState() {
           file,
           line)) {
     file.close();
-
     return false;
   }
 
@@ -400,7 +384,6 @@ bool MtgTokenActivity::loadState() {
   if (!version1 &&
       !version2) {
     file.close();
-
     return false;
   }
 
@@ -413,7 +396,6 @@ bool MtgTokenActivity::loadState() {
             file,
             line)) {
       file.close();
-
       return false;
     }
 
@@ -427,7 +409,6 @@ bool MtgTokenActivity::loadState() {
             expectedFields,
             fields)) {
       file.close();
-
       return false;
     }
 
@@ -459,10 +440,6 @@ bool MtgTokenActivity::loadState() {
           unescapeSessionField(
               fields[6]);
     } else {
-      /*
-       * Backward compatibility with the session format
-       * from the previous firmware build.
-       */
       slot.name =
           fields[0];
 
@@ -758,36 +735,32 @@ void MtgTokenActivity::activateCurrentSelection() {
     case View::EditMenu:
       switch (selectedEditItem) {
         case 0:
-          beginStatEdit(
-              StatField::Power);
-          break;
-
-        case 1:
-          beginStatEdit(
-              StatField::Toughness);
-          break;
-
-        case 2:
-          // Edit Color comes next.
-          break;
-
-        case 3:
           selectedLetter = 0;
 
           setView(
               View::AlphabetPicker);
           break;
 
-        case 4:
+        case 1:
+          beginStatEdit(
+              StatField::Power);
+          break;
+
+        case 2:
+          beginStatEdit(
+              StatField::Toughness);
+          break;
+
+        case 3:
           setView(
               View::CardText);
           break;
 
-        case 5:
+        case 4:
           clearSelectedCard();
           break;
 
-        case 6:
+        case 5:
           clearBoard();
           break;
 
@@ -829,7 +802,14 @@ void MtgTokenActivity::activateCurrentSelection() {
       break;
 
     case View::CardText:
-      // Card text is read-only.
+      /*
+       * BTB = Back To Board
+       *
+       * The same physical button used for Edit/Select
+       * immediately returns to the token grid.
+       */
+      setView(
+          View::TokenGrid);
       break;
   }
 }
@@ -860,7 +840,6 @@ void MtgTokenActivity::goBackOneLevel() {
       break;
 
     case View::StatEditor:
-      // Back cancels the unsaved numeric edit.
       editingStat =
           StatField::None;
 
@@ -869,6 +848,10 @@ void MtgTokenActivity::goBackOneLevel() {
       break;
 
     case View::CardText:
+      /*
+       * Back still behaves like normal hierarchical Back:
+       * Card Text -> Edit Menu.
+       */
       setView(
           View::EditMenu);
       break;
@@ -928,6 +911,35 @@ void MtgTokenActivity::loop() {
     return;
   }
 
+  /*
+   * QUICK CARD-TEXT SHORTCUT
+   *
+   * Main token board:
+   *
+   *   Tap Edit        = Edit menu
+   *   Hold Edit 2 sec = Card Text
+   */
+  if (
+      view == View::TokenGrid &&
+      !slots[selectedSlot].name.empty() &&
+      mappedInput.wasLongPressed(
+          MappedInputManager::Button::Confirm,
+          EDIT_LONG_PRESS_MS)) {
+    setView(
+        View::CardText);
+
+    return;
+  }
+
+  /*
+   * Prevent the release following a successful long press
+   * from being interpreted as another normal button press.
+   */
+  if (
+      mappedInput.consumeSuppressedRelease()) {
+    return;
+  }
+
   if (mappedInput.wasReleased(
           MappedInputManager::Button::Back)) {
     if (view ==
@@ -945,6 +957,9 @@ void MtgTokenActivity::loop() {
     return;
   }
 
+  /*
+   * Normal Edit/Select/Save/BTB press.
+   */
   if (mappedInput.wasReleased(
           MappedInputManager::Button::Confirm)) {
     activateCurrentSelection();
@@ -953,14 +968,19 @@ void MtgTokenActivity::loop() {
   }
 
   /*
-   * Fixed side buttons.
+   * PHYSICAL SIDE BUTTONS
+   *
+   * Main board:
+   *
+   *   Left side  = -1
+   *   Right side = +1
    */
   buttonNavigator.onPressAndContinuous(
       {MappedInputManager::Button::Up},
       [this] {
         switch (view) {
           case View::TokenGrid:
-            moveSelection(-1);
+            adjustQuantity(-1);
             break;
 
           case View::EditMenu:
@@ -989,7 +1009,7 @@ void MtgTokenActivity::loop() {
       [this] {
         switch (view) {
           case View::TokenGrid:
-            moveSelection(1);
+            adjustQuantity(1);
             break;
 
           case View::EditMenu:
@@ -1014,20 +1034,25 @@ void MtgTokenActivity::loop() {
       });
 
   /*
-   * Bottom-right pair changes meaning by screen.
+   * BOTTOM-RIGHT ROCKER
+   *
+   * Main board:
+   *
+   *   Left  = previous tile
+   *   Right = next tile
    */
   switch (view) {
     case View::TokenGrid:
       buttonNavigator.onPressAndContinuous(
           {MappedInputManager::Button::Left},
           [this] {
-            adjustQuantity(-1);
+            moveSelection(-1);
           });
 
       buttonNavigator.onPressAndContinuous(
           {MappedInputManager::Button::Right},
           [this] {
-            adjustQuantity(1);
+            moveSelection(1);
           });
       break;
 
@@ -1191,14 +1216,6 @@ bool MtgTokenActivity::readTsvRecord(
 
     sawData = true;
 
-    /*
-     * A quote encountered while already quoted can either:
-     *
-     *   ""  = literal quote
-     *   "   = end of quoted field
-     *
-     * We defer deciding until the next byte arrives.
-     */
     if (quotePending) {
       if (character == '"') {
         current.push_back('"');
@@ -1210,19 +1227,12 @@ bool MtgTokenActivity::readTsvRecord(
 
       inQuotes = false;
       quotePending = false;
-
-      // Process the current character again as an
-      // unquoted delimiter/newline/value below.
     }
 
     if (inQuotes) {
       if (character == '"') {
         quotePending = true;
       } else {
-        /*
-         * This includes embedded '\n' characters.
-         * They remain part of the Oracle text field.
-         */
         current.push_back(
             character);
       }
@@ -1311,12 +1321,6 @@ bool MtgTokenActivity::loadTokensForLetter(
 
   std::vector<std::string> fields;
 
-  /*
-   * First logical TSV record is the header.
-   *
-   * readTsvRecord() understands quoted fields containing
-   * actual newline characters, unlike readLine().
-   */
   if (!readTsvRecord(
           file,
           fields)) {
@@ -1330,17 +1334,6 @@ bool MtgTokenActivity::loadTokensForLetter(
   while (readTsvRecord(
       file,
       fields)) {
-    /*
-     * Per-letter index:
-     *
-     * 0 token_id
-     * 1 name
-     * 2 power
-     * 3 toughness
-     * 4 colors
-     * 5 art_file
-     * 6 oracle_text
-     */
     if (fields.size() < 7) {
       continue;
     }
@@ -1413,10 +1406,6 @@ void MtgTokenActivity::assignSelectedToken() {
   slot.oracleText =
       choice.oracleText;
 
-  /*
-   * Populate a brand-new tile at x1.
-   * Changing an existing card preserves quantity.
-   */
   if (wasEmpty) {
     slot.quantity = 1;
   }
@@ -1561,15 +1550,11 @@ void MtgTokenActivity::buildEditScreen(
       footer,
       4);
 
-  /*
-   * Seven rows easily fit on the X3 and give us one
-   * centralized menu for all token operations.
-   */
   screen.insetContent(
       fui::makeInsets(6));
 
   screen.button(
-      "Edit Power",
+      "Change Card",
       ACTION_EDIT_ITEM,
       0,
       selectedEditItem == 0
@@ -1577,7 +1562,7 @@ void MtgTokenActivity::buildEditScreen(
           : fui::StateNormal);
 
   screen.button(
-      "Edit Toughness",
+      "Edit Power",
       ACTION_EDIT_ITEM,
       1,
       selectedEditItem == 1
@@ -1585,7 +1570,7 @@ void MtgTokenActivity::buildEditScreen(
           : fui::StateNormal);
 
   screen.button(
-      "Edit Color",
+      "Edit Toughness",
       ACTION_EDIT_ITEM,
       2,
       selectedEditItem == 2
@@ -1593,7 +1578,7 @@ void MtgTokenActivity::buildEditScreen(
           : fui::StateNormal);
 
   screen.button(
-      "Change Card",
+      "Read Card Text",
       ACTION_EDIT_ITEM,
       3,
       selectedEditItem == 3
@@ -1601,7 +1586,7 @@ void MtgTokenActivity::buildEditScreen(
           : fui::StateNormal);
 
   screen.button(
-      "Read Card Text",
+      "Clear Card",
       ACTION_EDIT_ITEM,
       4,
       selectedEditItem == 4
@@ -1609,18 +1594,10 @@ void MtgTokenActivity::buildEditScreen(
           : fui::StateNormal);
 
   screen.button(
-      "Clear Card",
+      "Clear Board",
       ACTION_EDIT_ITEM,
       5,
       selectedEditItem == 5
-          ? fui::StateSelected
-          : fui::StateNormal);
-
-  screen.button(
-      "Clear Board",
-      ACTION_EDIT_ITEM,
-      6,
-      selectedEditItem == 6
           ? fui::StateSelected
           : fui::StateNormal);
 }
@@ -1732,10 +1709,16 @@ void MtgTokenActivity::buildCardTextScreen(
   screen.header(
       "Card Text");
 
+  /*
+   * Back = return to Edit menu
+   * BTB  = Back To Board
+   *
+   * BTB uses the exact same physical button as Edit/Select.
+   */
   const auto labels =
       mappedInput.mapLabels(
           "Back",
-          "",
+          "BTB",
           "",
           "");
 
@@ -1805,12 +1788,6 @@ void MtgTokenActivity::buildCardTextScreen(
   textStyle.align =
       fui::TextAlign::Left;
 
-  /*
-   * FreeInkUI wraps words and also honors the original
-   * Scryfall '\n' hard breaks.
-   *
-   * FreeInkUI currently caps wrapped text at 16 lines.
-   */
   textStyle.maxLines = 16;
 
   if (slot.oracleText.empty()) {
@@ -2110,8 +2087,8 @@ void MtgTokenActivity::buildTokenScreen(
       mappedInput.mapLabels(
           "Back",
           "Edit",
-          "-1",
-          "+1");
+          "Left",
+          "Right");
 
   const fui::FooterAction footer[] = {
       {labels.btn1},
@@ -2352,16 +2329,70 @@ void MtgTokenActivity::buildTokenScreen(
       }
     }
 
+    /*
+     * Individual P/T and total P/T on the same line.
+     *
+     * Example:
+     *
+     *   3/1   [T]:9/3
+     */
     if (!slot.power.empty() ||
         !slot.toughness.empty()) {
-      char statText[32];
+      char statText[64];
 
-      snprintf(
-          statText,
-          sizeof(statText),
-          "%s/%s",
-          slot.power.c_str(),
-          slot.toughness.c_str());
+      char* powerEnd = nullptr;
+      char* toughnessEnd = nullptr;
+
+      const long powerValue =
+          std::strtol(
+              slot.power.c_str(),
+              &powerEnd,
+              10);
+
+      const long toughnessValue =
+          std::strtol(
+              slot.toughness.c_str(),
+              &toughnessEnd,
+              10);
+
+      const bool powerNumeric =
+          !slot.power.empty() &&
+          powerEnd !=
+              slot.power.c_str() &&
+          *powerEnd == '\0';
+
+      const bool toughnessNumeric =
+          !slot.toughness.empty() &&
+          toughnessEnd !=
+              slot.toughness.c_str() &&
+          *toughnessEnd == '\0';
+
+      if (powerNumeric &&
+          toughnessNumeric) {
+        const long totalPower =
+            powerValue *
+            slot.quantity;
+
+        const long totalToughness =
+            toughnessValue *
+            slot.quantity;
+
+        snprintf(
+            statText,
+            sizeof(statText),
+            "%s/%s   [T]:%ld/%ld",
+            slot.power.c_str(),
+            slot.toughness.c_str(),
+            totalPower,
+            totalToughness);
+      } else {
+        snprintf(
+            statText,
+            sizeof(statText),
+            "%s/%s",
+            slot.power.c_str(),
+            slot.toughness.c_str());
+      }
 
       target.text(
           statRect,
