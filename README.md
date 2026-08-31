@@ -22,11 +22,10 @@ CrossPoint MTG Token Board would not exist without that work.
 
 Scryfall provides the card and token data used to generate the offline token library and artwork set.
 
+
+
+# CrossPoint MTG Token Board
 ### CrossPoint MTG Token Board
-
-
-!!!!!!!CrossPoint MTG Token Board!!!!!!!
-
 An MTG token and game-state board for the XTEINK X3 e-paper reader, built as a fork of CrossPoint Reader.
 
 CrossPoint MTG Token Board turns the X3 into a compact four-slot Magic: The Gathering token display. Each slot can represent a different token, track quantity and power/toughness, display token artwork, calculate combined power/toughness, and provide quick access to rules text.
