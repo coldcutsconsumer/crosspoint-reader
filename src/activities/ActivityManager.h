@@ -84,6 +84,7 @@ class ActivityManager {
   void goToFileTransfer();
   void goToUsbDrive();
   void goToSettings();
+  void goToMtgTokens();
   void goToFileBrowser(std::string path = {});
   void goToRecentBooks();
   void goToBrowser();

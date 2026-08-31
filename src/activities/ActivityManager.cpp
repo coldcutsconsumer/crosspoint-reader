@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include "CrossPointSettings.h"
+#include "mtg/MtgTokenActivity.h"
 #include "OpdsServerStore.h"
 #include "boot_sleep/BootActivity.h"
 #include "boot_sleep/SleepActivity.h"
@@ -243,6 +244,19 @@ void ActivityManager::goToUsbDrive() {
 }
 
 void ActivityManager::goToSettings() { replaceActivity(std::make_unique<SettingsActivity>(renderer, mappedInput)); }
+
+
+void ActivityManager::goToMtgTokens() {
+  auto activity =
+      makeUniqueNoThrow<MtgTokenActivity>(renderer, mappedInput);
+
+  if (!activity) {
+    LOG_ERR("ACT", "OOM: MTG token activity");
+    return;
+  }
+
+  replaceActivity(std::move(activity));
+}
 
 void ActivityManager::goToFileBrowser(std::string path) {
   replaceActivity(std::make_unique<FileBrowserActivity>(renderer, mappedInput, std::move(path)));
